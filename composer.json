@@ -1,0 +1,6 @@
+{
+    "require": {
+        "yiisoft/yii2": "*",
+        "light/yii2-swagger": "~1.0.4"
+    }
+}
