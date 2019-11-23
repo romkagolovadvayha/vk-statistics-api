@@ -33,6 +33,16 @@ $config = [
                     'extraPatterns' => [
                         'GET add' => 'add',
                         'DELETE delete' => 'delete',
+                        'GET index' => 'index',
+                    ],
+                ],
+                [
+                    'class' => 'yii\rest\UrlRule',
+                    'controller' => 'user',
+                    'prefix' => 'api',
+                    'extraPatterns' => [
+                        'GET auth' => 'auth',
+                        'GET bay' => 'bay',
                     ],
                 ],
             ],

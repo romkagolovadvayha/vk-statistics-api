@@ -4,6 +4,7 @@ namespace app\controllers;
 
 use Yii;
 use yii\filters\auth\QueryParamAuth;
+use yii\helpers\ArrayHelper;
 use yii\rest\Controller;
 
 /**
@@ -13,7 +14,12 @@ use yii\rest\Controller;
  *     consumes={"application/x-www-form-urlencoded"},
  *     @SWG\Info(version="1.0", title="API статистика вконтакте"),
  * )
+ * @SWG\Tag(
+ *   name="objects",
+ *   description="Работа с обьектами вконтакте (user, group, event, public)"
+ * )
  */
+
 class ObjectController extends Controller
 {
 
@@ -27,14 +33,30 @@ class ObjectController extends Controller
 
     /**
      * @SWG\Get(
+     *   path="/api/objects", tags={"objects"},
+     *   summary="Получить список обьектов текущего пользователя", description="",
+     *   @SWG\Parameter(
+     *     name="access_token", required=true, in="query", description="Token authorized", default="ddEiq0BZ0Hi-OU8S3xVFFFF70it7tzNs",
+     *     @SWG\Schema(type="string")
+     *   ),
+     *   @SWG\Response(response=200, description="Получить список обьектов текущего пользователя")
+     * )
+     */
+    public function actionIndex()
+    {
+        return ['status' => 1];
+    }
+
+    /**
+     * @SWG\Get(
      *   path="/api/objects/add", tags={"objects"},
      *   summary="Добавление обьекта текущему пользователя", description="",
      *   @SWG\Parameter(
-     *     name="vkObjectId", required=true, in="query", description="ID обьекта вконтакте",
+     *     name="vk_object_id", required=true, in="query", description="ID обьекта вконтакте",
      *     @SWG\Schema(type="integer", format="int64")
      *   ),
      *   @SWG\Parameter(
-     *     name="vkObjectType", required=true, in="query", description="Тип обьекта вконтакте (user, group, event)",
+     *     name="vk_object_type", required=true, in="query", description="Тип обьекта вконтакте (user, group, event, public)",
      *     @SWG\Schema(type="string")
      *   ),
      *   @SWG\Parameter(
@@ -56,7 +78,13 @@ class ObjectController extends Controller
             return ['status' => 0, 'error' => $e->getMessage()];
         }
 
-        return ['status' => 1, 'action' => 'actionAdd', 'object' => $model->toArray()];
+        $object = ArrayHelper::toArray($model, [
+            'app\models\Object' => [
+                'id',
+                'name',
+            ],
+        ]);
+        return ['status' => 1, 'object' => $object];
     }
 
     /**
@@ -64,11 +92,11 @@ class ObjectController extends Controller
      *   path="/api/objects/delete", tags={"objects"},
      *   summary="Удаление обьекта у текущего пользователя", description="",
      *   @SWG\Parameter(
-     *     name="vkObjectId", required=true, in="query", description="ID обьекта вконтакте",
+     *     name="vk_object_id", required=true, in="query", description="ID обьекта вконтакте",
      *     @SWG\Schema(type="integer", format="int64")
      *   ),
      *   @SWG\Parameter(
-     *     name="vkObjectType", required=true, in="query", description="Тип обьекта вконтакте (user, group, event)",
+     *     name="vk_object_type", required=true, in="query", description="Тип обьекта вконтакте (user, group, event)",
      *     @SWG\Schema(type="string")
      *   ),
      *   @SWG\Parameter(
@@ -87,6 +115,6 @@ class ObjectController extends Controller
             return ['status' => 0, 'errors' => $model->getErrors()];
         }
 
-        return ['status' => 1, 'action' => 'actionDelete', 'object' => $model->toArray()];
+        return ['status' => 1];
     }
 }

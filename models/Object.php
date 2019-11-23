@@ -8,8 +8,8 @@ class Object extends Model
 {
     public $id;
     public $name;
-    public $vkObjectId;
-    public $vkObjectType;
+    public $vk_object_id;
+    public $vk_object_type;
 
     /**
      * @return array the validation rules.
@@ -17,14 +17,14 @@ class Object extends Model
     public function rules()
     {
         return [
-            ['vkObjectId', 'required', 'message' => 'Укажите vk_object_id'],
-            ['vkObjectType', 'required', 'message' => 'Укажите vk_object_type'],
-            ['vkObjectType', 'validateVkObjectType']
+            ['vk_object_id', 'required', 'message' => 'Укажите vk_object_id'],
+            ['vk_object_type', 'required', 'message' => 'Укажите vk_object_type'],
+            ['vk_object_type', 'validateVkObjectType']
         ];
     }
 
     public function validateVkObjectType($attribute) {
-        if (!in_array($this->$attribute, ['user', 'group', 'event'])) {
+        if (!in_array($this->$attribute, ['user', 'group', 'event', 'public'])) {
             $this->addError($attribute, 'Тип обьекта не поддерживается!');
         }
     }

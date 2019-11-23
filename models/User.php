@@ -8,6 +8,20 @@ use yii\web\IdentityInterface;
 
 class User extends ActiveRecord implements IdentityInterface
 {
+    public $user_id;
+    public $hash;
+
+    /**
+     * @return array the validation rules.
+     */
+    public function rules()
+    {
+        return [
+            ['user_id', 'required', 'message' => 'Укажите user_id'],
+            ['hash', 'required', 'message' => 'Укажите hash']
+        ];
+    }
+
     public static function tableName()
     {
         return 'users';
