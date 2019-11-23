@@ -2,7 +2,8 @@
 
 namespace app\controllers;
 
-use Yii;
+use app\models\Group;
+use app\models\Object;
 use yii\filters\auth\QueryParamAuth;
 use yii\helpers\ArrayHelper;
 use yii\rest\Controller;
@@ -19,7 +20,6 @@ use yii\rest\Controller;
  *   description="Работа с обьектами вконтакте (user, group, event, public)"
  * )
  */
-
 class ObjectController extends Controller
 {
 
@@ -50,7 +50,8 @@ class ObjectController extends Controller
      */
     public function actionIndex()
     {
-        return ['status' => 1];
+        $object = new Object();
+        return ['status' => 1, 'objects' => $object->publicArray(\Yii::$app->user->identity->objects)];
     }
 
     /**
@@ -74,16 +75,10 @@ class ObjectController extends Controller
      */
     public function actionAdd()
     {
-        try {
-            $model = new \app\models\Object();
-            $model->load(\Yii::$app->request->get(), '');
-            if (!$model->validate()) {
-                return ['status' => 0, 'errors' => $model->getErrors()];
-            }
-        } catch (\Exception $e) {
-            return ['status' => 0, 'error' => $e->getMessage()];
+        if (!in_array(\Yii::$app->request->get('vk_object_type'), ['user', 'group', 'event', 'public'])) {
+            return ['status' => 1, 'object' => 'Тип обьекта не поддерживается!'];
         }
-
+        $model = new \app\models\Object();
         $object = ArrayHelper::toArray($model, [
             'app\models\Object' => [
                 'id',

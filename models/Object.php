@@ -2,30 +2,38 @@
 
 namespace app\models;
 
-use yii\base\Model;
+use yii\db\ActiveRecord;
+use yii\helpers\ArrayHelper;
 
-class Object extends Model
+class Object extends ActiveRecord
 {
-    public $id;
-    public $name;
-    public $vk_object_id;
-    public $vk_object_type;
-
-    /**
-     * @return array the validation rules.
-     */
-    public function rules()
+    public static function tableName()
     {
-        return [
-            ['vk_object_id', 'required', 'message' => 'Укажите vk_object_id'],
-            ['vk_object_type', 'required', 'message' => 'Укажите vk_object_type'],
-            ['vk_object_type', 'validateVkObjectType']
-        ];
+        return 'objects';
     }
 
-    public function validateVkObjectType($attribute) {
-        if (!in_array($this->$attribute, ['user', 'group', 'event', 'public'])) {
-            $this->addError($attribute, 'Тип обьекта не поддерживается!');
-        }
+    public function getUserToObjects()
+    {
+        return $this->hasMany(UserToObjects::className(), ['objectId' => 'id']);
+    }
+
+    /**
+     * Публичный массив модели
+     */
+    public function publicArray($object = NULL)
+    {
+        $object = $object ?? $this;
+        return ArrayHelper::toArray($object, [
+            'app\models\Object' => [
+                'object_id',
+                'object_type',
+                'name',
+                'photo_50',
+                'is_closed',
+                'is_closed',
+                'members_count',
+                'create',
+            ],
+        ]);
     }
 }

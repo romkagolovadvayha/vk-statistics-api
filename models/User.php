@@ -77,20 +77,14 @@ class User extends ActiveRecord implements IdentityInterface
         return $this->getAuthKey() === $authKey;
     }
 
-    /**
-     * Публичный массив модели
-     */
-    public function publicArray()
+    public function getObjects()
     {
-        return ArrayHelper::toArray($this, [
-            'app\models\User' => [
-                'user_id',
-                'name',
-                'balance',
-                'photo_50',
-                'access_token',
-            ],
-        ]);
+        return $this->hasMany(Object::className(), ['id' => 'objectId'])->via('userToObjects');
+    }
+
+    public function getUserToObjects()
+    {
+        return $this->hasMany(UserToObjects::className(), ['userId' => 'id']);
     }
 
     /**
@@ -121,5 +115,21 @@ class User extends ActiveRecord implements IdentityInterface
             throw new UnauthorizedHttpException('Ошибка авторизации!', 403);
         }
         return true;
+    }
+
+    /**
+     * Публичный массив модели
+     */
+    public function publicArray()
+    {
+        return ArrayHelper::toArray($this, [
+            'app\models\User' => [
+                'user_id',
+                'name',
+                'balance',
+                'photo_50',
+                'access_token',
+            ],
+        ]);
     }
 }
