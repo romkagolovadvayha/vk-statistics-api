@@ -22,4 +22,15 @@ class UserToObjects extends ActiveRecord
         return $this->hasOne(User::className(), ['id' => 'userId']);
     }
 
+    public static function create($objectId, $userId)
+    {
+        $userToObjects = new UserToObjects();
+        if ($userToObjects::findOne(['objectId' => $objectId, 'userId' => $userId])) {
+            return false;
+        }
+        $userToObjects->objectId = $objectId;
+        $userToObjects->userId = $userId;
+        $userToObjects->insert();
+    }
+
 }

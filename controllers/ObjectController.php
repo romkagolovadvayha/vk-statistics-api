@@ -2,10 +2,9 @@
 
 namespace app\controllers;
 
-use app\models\Group;
 use app\models\Object;
+use app\models\UserToObjects;
 use yii\filters\auth\QueryParamAuth;
-use yii\helpers\ArrayHelper;
 use yii\rest\Controller;
 
 /**
@@ -59,11 +58,11 @@ class ObjectController extends Controller
      *   path="/api/objects/add", tags={"objects"},
      *   summary="Добавление обьекта текущему пользователя", description="",
      *   @SWG\Parameter(
-     *     name="vk_object_id", required=true, in="query", description="ID обьекта вконтакте",
+     *     name="object_id", required=true, in="query", description="ID обьекта вконтакте",
      *     @SWG\Schema(type="integer", format="int64")
      *   ),
      *   @SWG\Parameter(
-     *     name="vk_object_type", required=true, in="query", description="Тип обьекта вконтакте (user, group, event, public)",
+     *     name="object_type", required=true, in="query", description="Тип обьекта вконтакте (user, group, event, public)",
      *     @SWG\Schema(type="string")
      *   ),
      *   @SWG\Parameter(
@@ -75,17 +74,23 @@ class ObjectController extends Controller
      */
     public function actionAdd()
     {
-        if (!in_array(\Yii::$app->request->get('vk_object_type'), ['user', 'group', 'event', 'public'])) {
-            return ['status' => 1, 'object' => 'Тип обьекта не поддерживается!'];
+        $object_id = \Yii::$app->request->get('object_id');
+        $object_type = \Yii::$app->request->get('object_type');
+        if (!in_array($object_type, ['user', 'group', 'event', 'public', 'page'])) {
+            throw new ServerErrorHttpException('Тип обьекта не поддерживается!');
         }
-        $model = new \app\models\Object();
-        $object = ArrayHelper::toArray($model, [
-            'app\models\Object' => [
-                'id',
-                'name',
-            ],
-        ]);
-        return ['status' => 1, 'object' => $object];
+        $model = \app\models\Object::findByIdAndType($object_id, $object_type);
+        if (empty($model)) {
+            // если пользователь еще не создан создать
+            \app\models\Object::createGroup($object_id, $object_type);
+            \app\models\Object::createUser($object_id, $object_type);
+            $model = \app\models\Object::findByIdAndType($object_id, $object_type);
+        }
+        if (!empty($model->id)) {
+            \app\models\UserToObjects::create($model->id, \Yii::$app->user->identity->id);
+        }
+
+        return ['status' => 1, 'object' => $model->publicArray()];
     }
 
     /**
@@ -93,11 +98,11 @@ class ObjectController extends Controller
      *   path="/api/objects/delete", tags={"objects"},
      *   summary="Удаление обьекта у текущего пользователя", description="",
      *   @SWG\Parameter(
-     *     name="vk_object_id", required=true, in="query", description="ID обьекта вконтакте",
+     *     name="object_id", required=true, in="query", description="ID обьекта вконтакте",
      *     @SWG\Schema(type="integer", format="int64")
      *   ),
      *   @SWG\Parameter(
-     *     name="vk_object_type", required=true, in="query", description="Тип обьекта вконтакте (user, group, event)",
+     *     name="bject_type", required=true, in="query", description="Тип обьекта вконтакте (user, group, event)",
      *     @SWG\Schema(type="string")
      *   ),
      *   @SWG\Parameter(
@@ -109,13 +114,13 @@ class ObjectController extends Controller
      */
     public function actionDelete()
     {
-        $model = new \app\models\Object();
-        $model->load(\Yii::$app->request->get(), '');
+        $object_id = \Yii::$app->request->get('object_id');
+        $object_type = \Yii::$app->request->get('object_type');
 
-        if (!$model->validate()) {
-            return ['status' => 0, 'errors' => $model->getErrors()];
-        }
-
+        $object = Object::findOne(['object_id' => $object_id, 'object_type' => $object_type]);
+        $userToObjects = UserToObjects::findOne(['objectId' => $object->id]);
+        $userToObjects->delete();
+        
         return ['status' => 1];
     }
 }

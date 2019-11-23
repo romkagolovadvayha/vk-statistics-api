@@ -60,10 +60,10 @@ class UserController extends Controller
                     'fields' => 'photo_50',
                 ]);
             } catch (VKApiException $e) {
-                return ['status' => 0, 'error' => $e->getMessage()];
+                throw new ServerErrorHttpException($e->getMessage());
             }
             if (empty($vkUser) || !empty($vkUser[0]['deactivated'])) {
-                return ['status' => 0, 'error' => 'Пользователь не существует!'];
+                throw new ServerErrorHttpException('Пользователь не существует!');
             }
             \app\models\User::create([
                 'user_id' => \Yii::$app->request->get('user_id'),
