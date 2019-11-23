@@ -31,6 +31,12 @@ class ObjectController extends Controller
         return $behaviors;
     }
 
+    public function beforeAction($action)
+    {
+        \app\models\User::checkSign();
+        return parent::beforeAction($action);
+    }
+
     /**
      * @SWG\Get(
      *   path="/api/objects", tags={"objects"},
