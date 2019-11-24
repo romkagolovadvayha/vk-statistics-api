@@ -5,7 +5,7 @@ $db = require __DIR__ . '/db.php';
 
 $config = [
     'id' => 'basic',
-    'basePath' => dirname(__DIR__ . ''),
+    'basePath' => dirname(__DIR__),
     'components' => [
         'request' => [
             'cookieValidationKey' => 'Px1lmFQQJ4QlqYOsPneISnNwldQAwhDt',
@@ -30,10 +30,15 @@ $config = [
                     'class' => 'yii\rest\UrlRule',
                     'controller' => 'object',
                     'prefix' => 'api',
+                    'tokens' => [
+                        '{id}' => '<object_id:\\w+>',
+                        '{type}' => '<object_type:\\w+>'
+                    ],
                     'extraPatterns' => [
                         'GET add' => 'add',
-                        'DELETE delete' => 'delete',
+                        'DELETE {type}/{id}/delete' => 'delete',
                         'GET index' => 'index',
+                        'GET {type}/{id}' => 'get',
                     ],
                 ],
                 [
@@ -43,6 +48,18 @@ $config = [
                     'extraPatterns' => [
                         'GET auth' => 'auth',
                         'GET bay' => 'bay',
+                    ],
+                ],
+                [
+                    'class' => 'yii\rest\UrlRule',
+                    'controller' => 'history',
+                    'prefix' => 'api',
+                    'tokens' => [
+                        '{id}' => '<object_id:\\w+>',
+                        '{type}' => '<object_type:\\w+>'
+                    ],
+                    'extraPatterns' => [
+                        'GET,POST {type}/{id}/add' => 'add',
                     ],
                 ],
             ],

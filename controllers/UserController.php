@@ -2,6 +2,7 @@
 
 namespace app\controllers;
 
+use app\models\Request\UserAuthRequest;
 use VK\Client\VKApiClient;
 use VK\Exceptions\VKApiException;
 use Yii;
@@ -9,6 +10,7 @@ use yii\filters\auth\QueryParamAuth;
 use yii\helpers\ArrayHelper;
 use yii\rest\Controller;
 use yii\web\NotFoundHttpException;
+use yii\web\ServerErrorHttpException;
 use yii\web\UnauthorizedHttpException;
 
 /**
@@ -48,36 +50,42 @@ class UserController extends Controller
      */
     public function actionAuth()
     {
-        $user_id = \Yii::$app->request->get('user_id');
-        $model = \app\models\User::findIdentity($user_id);
+        $model = new UserAuthRequest();
+        $model->load(\Yii::$app->request->get(), '');
+        if (!$model->validate()) {
+            throw new ServerErrorHttpException(array_values($model->getFirstErrors())[0]);
+        }
+
         $access_token = \Yii::$app->security->generateRandomString();
-        if (empty($model)) {
+
+        $user = \app\models\User::findIdentity($model->user_id);
+        if (empty($user)) {
             // если пользователь еще не создан создать
             $vk = new VKApiClient(\Yii::$app->params['vk']['version']);
             try {
-                $vkUser = $vk->users()->get(\Yii::$app->params['vk']['access_token'], [
-                    'user_ids' => [\Yii::$app->request->get('user_id')],
-                    'fields' => 'photo_50',
-                ]);
+                $VKUser = $vk->users()->get(
+                    \Yii::$app->params['vk']['access_token'],
+                    ['user_ids' => [$model->user_id], 'fields' => 'photo_50']
+                );
             } catch (VKApiException $e) {
                 throw new ServerErrorHttpException($e->getMessage());
             }
-            if (empty($vkUser) || !empty($vkUser[0]['deactivated'])) {
+            if (empty($VKUser) || !empty($VKUser[0]['deactivated'])) {
                 throw new ServerErrorHttpException('Пользователь не существует!');
             }
             \app\models\User::create([
-                'user_id' => \Yii::$app->request->get('user_id'),
-                'name' => $vkUser[0]['first_name'] . ' ' . $vkUser[0]['last_name'],
-                'photo_50' => $vkUser[0]['photo_50'],
+                'user_id' => $model->user_id,
+                'name' => $VKUser[0]['first_name'] . ' ' . $VKUser[0]['last_name'],
+                'photo_50' => $VKUser[0]['photo_50'],
                 'access_token' => $access_token,
             ]);
-            $model = \app\models\User::findIdentity($user_id);
+            $user = \app\models\User::findIdentity($model->user_id);
         } else {
-            $model->access_token = $access_token;
-            $model->save();
+            $user->access_token = $access_token;
+            $user->save();
         }
 
-        return ['status' => 1, 'user' => $model->publicArray()];
+        return ['status' => 1, 'user' => $user->publicArray()];
     }
 
     /**
@@ -89,7 +97,7 @@ class UserController extends Controller
      *     @SWG\Schema(type="string")
      *   ),
      *   @SWG\Parameter(
-     *     name="access_token", required=true, in="query", description="Token authorized", default="ddEiq0BZ0Hi-OU8S3xVFFFF70it7tzNs",
+     *     name="access_token", required=true, in="query", description="Token authorized",
      *     @SWG\Schema(type="string")
      *   ),
      *   @SWG\Response(response=200, description="Совершение покупки текущего пользователя")

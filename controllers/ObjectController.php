@@ -2,10 +2,15 @@
 
 namespace app\controllers;
 
+use app\models\HistoryObject;
 use app\models\Object;
+use app\models\Request\ObjectAddRequest;
+use app\models\Request\ObjectDeleteRequest;
+use app\models\Request\ObjectGetRequest;
 use app\models\UserToObjects;
 use yii\filters\auth\QueryParamAuth;
 use yii\rest\Controller;
+use yii\web\ServerErrorHttpException;
 
 /**
  * @SWG\Swagger(
@@ -41,7 +46,7 @@ class ObjectController extends Controller
      *   path="/api/objects", tags={"objects"},
      *   summary="Получить список обьектов текущего пользователя", description="",
      *   @SWG\Parameter(
-     *     name="access_token", required=true, in="query", description="Token authorized", default="ddEiq0BZ0Hi-OU8S3xVFFFF70it7tzNs",
+     *     name="access_token", required=true, in="query", description="Token authorized",
      *     @SWG\Schema(type="string")
      *   ),
      *   @SWG\Response(response=200, description="Получить список обьектов текущего пользователя")
@@ -51,6 +56,43 @@ class ObjectController extends Controller
     {
         $object = new Object();
         return ['status' => 1, 'objects' => $object->publicArray(\Yii::$app->user->identity->objects)];
+    }
+
+    /**
+     * @SWG\Get(
+     *   path="/api/objects/{object_type}/{object_id}", tags={"objects"},
+     *   summary="Получить список обьект", description="",
+     *   @SWG\Parameter(
+     *     name="object_id", required=true, in="path", description="ID обьекта вконтакте",
+     *     @SWG\Schema(type="integer", format="int64")
+     *   ),
+     *   @SWG\Parameter(
+     *     name="object_type", required=true, in="path", description="Тип обьекта вконтакте (user, group, event, public)",
+     *     @SWG\Schema(type="string")
+     *   ),
+     *   @SWG\Parameter(
+     *     name="access_token", required=true, in="query", description="Token authorized",
+     *     @SWG\Schema(type="string")
+     *   ),
+     *   @SWG\Response(response=200, description="Получить список обьект")
+     * )
+     */
+    public function actionGet()
+    {
+        $model = new ObjectGetRequest();
+        $model->load(\Yii::$app->request->get(), '');
+        if (!$model->validate()) {
+            throw new ServerErrorHttpException(array_values($model->getFirstErrors())[0]);
+        }
+
+        $object = Object::findByIdAndType($model->object_id, $model->object_type);
+        if (empty($object)) {
+            throw new ServerErrorHttpException('Не найден!');
+        }
+        $history = new HistoryObject();
+        $objectResponse = $object->publicArray();
+        $objectResponse['history'] = $history->publicArray($object->history);
+        return ['status' => 1, 'object' => $objectResponse];
     }
 
     /**
@@ -66,7 +108,7 @@ class ObjectController extends Controller
      *     @SWG\Schema(type="string")
      *   ),
      *   @SWG\Parameter(
-     *     name="access_token", required=true, in="query", description="Token authorized", default="ddEiq0BZ0Hi-OU8S3xVFFFF70it7tzNs",
+     *     name="access_token", required=true, in="query", description="Token authorized",
      *     @SWG\Schema(type="string")
      *   ),
      *   @SWG\Response(response=200, description="Добавление обьекта текущему пользователя")
@@ -74,39 +116,40 @@ class ObjectController extends Controller
      */
     public function actionAdd()
     {
-        $object_id = \Yii::$app->request->get('object_id');
-        $object_type = \Yii::$app->request->get('object_type');
-        if (!in_array($object_type, ['user', 'group', 'event', 'public', 'page'])) {
-            throw new ServerErrorHttpException('Тип обьекта не поддерживается!');
-        }
-        $model = \app\models\Object::findByIdAndType($object_id, $object_type);
-        if (empty($model)) {
-            // если пользователь еще не создан создать
-            \app\models\Object::createGroup($object_id, $object_type);
-            \app\models\Object::createUser($object_id, $object_type);
-            $model = \app\models\Object::findByIdAndType($object_id, $object_type);
-        }
-        if (!empty($model->id)) {
-            \app\models\UserToObjects::create($model->id, \Yii::$app->user->identity->id);
+        $model = new ObjectAddRequest();
+        $model->load(\Yii::$app->request->get(), '');
+        if (!$model->validate()) {
+            throw new ServerErrorHttpException(array_values($model->getFirstErrors())[0]);
         }
 
-        return ['status' => 1, 'object' => $model->publicArray()];
+        $object = \app\models\Object::findByIdAndType($model->object_id, $model->object_type);
+        if (empty($object)) {
+            // если пользователь еще не создан создать
+            \app\models\Object::createGroup($model->object_id, $model->object_type);
+            \app\models\Object::createUser($model->object_id, $model->object_type);
+            $object = \app\models\Object::findByIdAndType($model->object_id, $model->object_type);
+        }
+        if (!empty($object->id)) {
+            \app\models\UserToObjects::create($object->id, \Yii::$app->user->identity->id);
+        }
+
+        return ['status' => 1, 'object' => $object->publicArray()];
     }
 
     /**
      * @SWG\Delete(
-     *   path="/api/objects/delete", tags={"objects"},
+     *   path="/api/objects/{object_type}/{object_id}/delete", tags={"objects"},
      *   summary="Удаление обьекта у текущего пользователя", description="",
      *   @SWG\Parameter(
-     *     name="object_id", required=true, in="query", description="ID обьекта вконтакте",
+     *     name="object_id", required=true, in="path", description="ID обьекта вконтакте",
      *     @SWG\Schema(type="integer", format="int64")
      *   ),
      *   @SWG\Parameter(
-     *     name="bject_type", required=true, in="query", description="Тип обьекта вконтакте (user, group, event)",
+     *     name="object_type", required=true, in="path", description="Тип обьекта вконтакте (user, group, event, public)",
      *     @SWG\Schema(type="string")
      *   ),
      *   @SWG\Parameter(
-     *     name="access_token", required=true, in="query", description="Token authorized", default="ddEiq0BZ0Hi-OU8S3xVFFFF70it7tzNs",
+     *     name="access_token", required=true, in="query", description="Token authorized",
      *     @SWG\Schema(type="string")
      *   ),
      *   @SWG\Response(response=200, description="Удаление обьекта у текущего пользователя")
@@ -114,13 +157,19 @@ class ObjectController extends Controller
      */
     public function actionDelete()
     {
-        $object_id = \Yii::$app->request->get('object_id');
-        $object_type = \Yii::$app->request->get('object_type');
+        $model = new ObjectDeleteRequest();
+        $model->load(\Yii::$app->request->get(), '');
+        if (!$model->validate()) {
+            throw new ServerErrorHttpException(array_values($model->getFirstErrors())[0]);
+        }
 
-        $object = Object::findOne(['object_id' => $object_id, 'object_type' => $object_type]);
+        $object = Object::findOne(['object_id' => $model->object_id, 'object_type' => $model->object_type]);
         $userToObjects = UserToObjects::findOne(['objectId' => $object->id]);
+        if (empty($userToObjects)) {
+            throw new ServerErrorHttpException('Не найден!');
+        }
         $userToObjects->delete();
-        
+
         return ['status' => 1];
     }
 }

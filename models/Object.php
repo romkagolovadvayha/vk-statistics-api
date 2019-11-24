@@ -19,6 +19,11 @@ class Object extends ActiveRecord
         return $this->hasMany(UserToObjects::className(), ['objectId' => 'id']);
     }
 
+    public function getHistory()
+    {
+        return $this->hasMany(HistoryObject::className(), ['objectId' => 'id']);
+    }
+
     /**
      * Создать обьект
      */
