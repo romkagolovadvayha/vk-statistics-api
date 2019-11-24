@@ -39,20 +39,6 @@ class User extends ActiveRecord implements IdentityInterface
     }
 
     /**
-     * Создать нового пользователя
-     */
-    public static function create($params)
-    {
-        $model = new User();
-        $model->user_id = $params['user_id'] ?? NULL;
-        $model->balance = $params['balance'] ?? 0;
-        $model->photo_50 = $params['photo_50'] ?? NULL;
-        $model->name = $params['name'] ?? NULL;
-        $model->access_token = $params['access_token'] ?? NULL;
-        return $model->insert();
-    }
-
-    /**
      * @return int|string current user ID
      */
     public function getId()

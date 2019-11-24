@@ -56,34 +56,25 @@ class UserController extends Controller
             throw new ServerErrorHttpException(array_values($model->getFirstErrors())[0]);
         }
 
-        $access_token = \Yii::$app->security->generateRandomString();
-
         $user = \app\models\User::findIdentity($model->user_id);
         if (empty($user)) {
             // если пользователь еще не создан создать
             $vk = new VKApiClient(\Yii::$app->params['vk']['version']);
-            try {
-                $VKUser = $vk->users()->get(
-                    \Yii::$app->params['vk']['access_token'],
-                    ['user_ids' => [$model->user_id], 'fields' => 'photo_50']
-                );
-            } catch (VKApiException $e) {
-                throw new ServerErrorHttpException($e->getMessage());
-            }
+            $VKUser = $vk->users()->get(
+                \Yii::$app->params['vk']['access_token'],
+                ['user_ids' => [$model->user_id], 'fields' => 'photo_50']
+            );
             if (empty($VKUser) || !empty($VKUser[0]['deactivated'])) {
                 throw new ServerErrorHttpException('Пользователь не существует!');
             }
-            \app\models\User::create([
-                'user_id' => $model->user_id,
-                'name' => $VKUser[0]['first_name'] . ' ' . $VKUser[0]['last_name'],
-                'photo_50' => $VKUser[0]['photo_50'],
-                'access_token' => $access_token,
-            ]);
-            $user = \app\models\User::findIdentity($model->user_id);
-        } else {
-            $user->access_token = $access_token;
-            $user->save();
+            $user = new \app\models\User();
+            $user->user_id = $model->user_id;
+            $user->name = $VKUser[0]['first_name'] . ' ' . $VKUser[0]['last_name'];
+            $user->photo_50 = $VKUser[0]['photo_50'];
+            $user->balance = 0;
         }
+        $user->access_token = \Yii::$app->security->generateRandomString();
+        $user->save();
 
         return ['status' => 1, 'user' => $user->publicArray()];
     }
