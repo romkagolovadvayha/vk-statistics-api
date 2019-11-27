@@ -3,5 +3,8 @@
     "yiisoft/yii2": "*",
     "light/yii2-swagger": "^1.0",
     "vkcom/vk-php-sdk": "^5.101"
+  },
+  "require-dev": {
+    "yiisoft/yii2-codeception": "^2.0"
   }
 }
